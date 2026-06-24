@@ -5,6 +5,11 @@ import pandas as pd
 import time
 import math
 import matplotlib.pyplot as plt
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+MODEL_DIR = PROJECT_ROOT / "model"
 
 
 
@@ -17,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("your device is: ", device)
 
 # read facebook dataset
-df = pd.read_csv("data/facebook.csv")
+df = pd.read_csv(DATA_DIR / "facebook.csv")
 df.head()
 
 
@@ -266,22 +271,16 @@ def forecast_seq(model, sequences):
 
 
 
-
-
 train_data, val_data = get_data(close_logreturn, 0.6) # 60% train, 40% test split
 model = transformer().to(device)
 
 
-
-
 criterion = nn.MSELoss()
 lr = 0.00005
-epochs = 200
+epochs = 100
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
-
-
 
 
 for epoch in range(1, epochs + 1):
@@ -325,19 +324,20 @@ print(f"Actual sequence: {close_csum_logreturn[r: r+11]}")
 
 
 
-torch.save(model.state_dict(), "model/time_forecasting_transformer.pth")
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
+torch.save(model.state_dict(), MODEL_DIR / "time_forecasting_transformer.pth")
 
 
 
 
 
 model_val = transformer()
-model_val.load_state_dict(torch.load("model/time_forecasting_transformer.pth"))
+model_val.load_state_dict(torch.load(MODEL_DIR / "time_forecasting_transformer.pth"))
 model_val.to(device)
 
 
 
-df2 = pd.read_csv("data/boeing.csv")
+df2 = pd.read_csv(DATA_DIR / "boeing.csv")
 close2 = df2["close"].fillna(method = "ffill")
 close2 = np.array(close2)
 logreturn2 = np.diff(np.log(close2))
@@ -359,7 +359,7 @@ plt.xlabel("Time Steps")
 plt.show()
 
 
-df3 = pd.read_csv("data/jp_morgan.csv")
+df3 = pd.read_csv(DATA_DIR / "jp_morgan.csv")
 close3 = df3["close"].fillna(method = "ffill")
 close3 = np.array(close3)
 logreturn3 = np.diff(np.log(close3))
